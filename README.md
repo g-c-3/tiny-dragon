@@ -1,4 +1,4 @@
-# ♟️ Tiny Dragon (a.k.a. Tiny Chess)
+# ♟️ Tiny Dragon
 
 **A 185-byte x86-16 DOS chess program.**
 
