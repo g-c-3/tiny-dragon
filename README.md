@@ -61,12 +61,11 @@ nasm -f bin tiny.asm -o tiny.com
 |---|---|---|
 | **Tiny Dragon (this project)** | **185 bytes** | x86-16 DOS executable |
 | LeanChess | 328 bytes | x86 assembly |
-| Guinness World Records official entry (Alejandro García, 2022) | 354 bytes | x86 assembly |
-| ChesSkelet | 377 bytes | Z80 (ZX Spectrum) |
+| ChesSkelet (Alex García) — Guinness-certified checkpoint | 354 bytes | Z80 (ZX Spectrum) |
 | BootChess | 487 bytes | x86 assembly |
 | 1K ZX Chess (1983, the original) | 672 bytes | Z80 (ZX81) |
 
-By raw byte count, 185 bytes is smaller than every entry above, including the Guinness-recognized record holder.
+By raw byte count, 185 bytes is smaller than every entry above, including the Guinness-recognized record holder. Note: ChesSkelet's author kept shrinking the same program over time — public sources report versions as small as 269–352 bytes at various points — so "354 bytes" specifically refers to the size Guinness certified in 2022, not the smallest version that has ever existed under that name.
 
 ### Important honest context — please read before sharing this as "the record"
 
@@ -87,6 +86,8 @@ However, it is **not equivalent in scope** to the officially certified record ho
 - **It has not been submitted to or verified by Guinness World Records**, or benchmarked head-to-head against the other programs in this table by any independent third party. The byte counts for competitors above are as publicly reported by their authors/press coverage, not re-verified by us.
 
 The honest framing: this is a legitimate, working, rigorously-tested **185-byte chess-piece-movement program**, smaller by byte count than the current Guinness-recognized entry — but "world's smallest chess *engine*" is a title with real prior art built through months or years of refinement and formal submission, and this project hasn't gone through that process. Treat the number as a genuine technical achievement worth being proud of, not a verified world record until/unless it's been through actual certification.
+
+**This isn't a shortfall unique to this project — it's how the entire category works.** The Guinness-certified ChesSkelet itself has no move legality checking (confirmed via its author-endorsed JavaScript port's documentation), and its own "known issues" list states its AI "may leave king in check to avoid losing material" — a genuine rules violation, not just a missing nicety. Separately, its author has publicly acknowledged an unfixed, reproducible move-execution bug reported by a user, and stated he's no longer working on the project. Every program at this size makes similar tradeoffs; none of them are "complete" chess by tournament standards, including the officially recognized record holder.
 
 ---
 
