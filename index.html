@@ -14,7 +14,27 @@
 <script src="https://v8.js-dos.com/latest/js-dos.js"></script>
 <style>
   html,body { margin:0; background:#000; }
-  #dos { width:100vw; height:100vh; }
+
+  /* The DOS screen is a full 80x25 text-mode canvas, but our board only
+     ever occupies the top-left 8x8 characters of it -- the rest is empty
+     black space. #dosWrap is a fixed-height viewport window (leaving room
+     below for js-dos's on-screen keyboard); #dos holds the raw js-dos
+     canvas, which gets zoomed via JS below so the used corner fills
+     #dosWrap instead of sitting tiny in the corner of a mostly-empty screen. */
+  #dosWrap {
+    width: 100vw;
+    height: 42vh;
+    overflow: hidden;
+    position: relative;
+    background: #000;
+  }
+  #dos {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+  }
+
   #credit {
     position:fixed;
     bottom:6px;
@@ -28,7 +48,7 @@
 </style>
 </head>
 <body>
-<div id="dos"></div>
+<div id="dosWrap"><div id="dos"></div></div>
 <div id="credit">&copy; 2026 Gokul Chandar</div>
 <script>
   // Fetch tiny.com fresh every time (cache-busted), so this page ALWAYS
@@ -49,11 +69,40 @@ tiny.com
           { path: "/tiny.com", contents: bytes }
         ]
       });
+      zoomToBoard();
     })
     .catch(err => {
       document.getElementById("dos").innerText =
         "Failed to load tiny.com: " + err;
     });
+
+  // Board occupies the top-left 8 of 80 columns and top 8 of 25 rows of
+  // the DOS text screen. Once js-dos creates its canvas, scale + position
+  // it so that corner fills the visible #dosWrap viewport instead of
+  // being surrounded by empty black space.
+  function zoomToBoard() {
+    const wrap = document.getElementById("dosWrap");
+    const dos = document.getElementById("dos");
+
+    const tryZoom = () => {
+      const canvas = dos.querySelector("canvas");
+      if (!canvas || !canvas.width || !canvas.height) {
+        requestAnimationFrame(tryZoom);
+        return;
+      }
+      const boardWidthPx = canvas.width * (8 / 80);
+      const boardHeightPx = canvas.height * (8 / 25);
+      const scale = Math.min(
+        wrap.clientWidth / boardWidthPx,
+        wrap.clientHeight / boardHeightPx
+      );
+      dos.style.transform = `scale(${scale})`;
+    };
+    requestAnimationFrame(tryZoom);
+
+    // Re-apply on resize/orientation change
+    window.addEventListener("resize", () => requestAnimationFrame(tryZoom));
+  }
 </script>
 </body>
 </html>
