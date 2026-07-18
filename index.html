@@ -1,3 +1,9 @@
+<!--
+  Tiny Dragon (a.k.a. Tiny Chess)
+  Copyright © 2026 Gokul Chandar
+  Released into the public domain — use, copy, modify, and share freely.
+  A credit back to Gokul Chandar is appreciated but not required.
+-->
 <!doctype html>
 <html lang="en-us">
 <head>
@@ -9,10 +15,21 @@
 <style>
   html,body { margin:0; background:#000; }
   #dos { width:100vw; height:100vh; }
+  #credit {
+    position:fixed;
+    bottom:6px;
+    right:10px;
+    color:#666;
+    font-family:monospace;
+    font-size:11px;
+    z-index:10;
+    pointer-events:none;
+  }
 </style>
 </head>
 <body>
 <div id="dos"></div>
+<div id="credit">&copy; 2026 Gokul Chandar</div>
 <script>
   Dos(document.getElementById("dos"), {
     url: "tiny.jsdos"
