@@ -28,9 +28,9 @@ cols:
     call read_sq
     mov di,ax        ; di = dst index
 
-    mov al,[si]
-    mov [di],al
-    mov byte [si],'.'
+    mov al,'.'
+    xchg al,[si]
+    xchg al,[di]
 
     ; --- trivial AI reply: find first lowercase letter, push it down one row ---
     mov si,board
