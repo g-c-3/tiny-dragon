@@ -1,7 +1,7 @@
 <!--
   Tiny Dragon (a.k.a. Tiny Chess)
-  Copyright © 2026 Gokul Chandar
-  Released into the public domain — use, copy, modify, and share freely.
+  Copyright (c) 2026 Gokul Chandar
+  Released into the public domain -- use, copy, modify, and share freely.
   A credit back to Gokul Chandar is appreciated but not required.
 -->
 <!doctype html>
@@ -31,9 +31,29 @@
 <div id="dos"></div>
 <div id="credit">&copy; 2026 Gokul Chandar</div>
 <script>
-  Dos(document.getElementById("dos"), {
-    url: "tiny.jsdos"
-  });
+  // Fetch tiny.com fresh every time (cache-busted), so this page ALWAYS
+  // reflects whatever is currently committed to the repo -- no separate
+  // .jsdos bundle to remember to regenerate.
+  fetch("tiny.com?_=" + Date.now(), { cache: "no-store" })
+    .then(r => r.arrayBuffer())
+    .then(buf => {
+      const bytes = new Uint8Array(buf);
+      Dos(document.getElementById("dos"), {
+        dosboxConf: `
+[autoexec]
+mount c .
+c:
+tiny.com
+`,
+        initFs: [
+          { path: "/tiny.com", contents: bytes }
+        ]
+      });
+    })
+    .catch(err => {
+      document.getElementById("dos").innerText =
+        "Failed to load tiny.com: " + err;
+    });
 </script>
 </body>
 </html>
