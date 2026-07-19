@@ -2,7 +2,7 @@
 
 **A 185-byte x86-16 DOS chess program.**
 
-Created by **Gokul Chandar**, in collaboration with **Claude (Anthropic)**.
+Created by **Gokul Chandar** in close collaboration with **Claude (Anthropic)** — Claude wrote and iteratively byte-golfed the x86-16 assembly, designed and ran the automated emulator test harness (including the adversarial "poisoned register" testing that caught a real correctness bug), diagnosed both bugs described in the Development Log below, and wrote this documentation. Gokul directed the project, ran the real-hardware/browser verification, and handled deployment.
 
 ---
 
@@ -115,11 +115,11 @@ This started at 237 bytes and was refined down to 185 across many rounds, includ
 
 ## Credits
 
-- **Gokul Chandar** — project lead, testing, deployment
-- **Claude (Anthropic)** — code, debugging, documentation
-- Move-execution technique adapted from **[LeanChess](https://github.com/leanchess/leanchess) by Dmitry Shechtman** (MIT licensed) — see Technical notes above
+- **Claude (Anthropic)** — wrote the x86-16 NASM source and drove the byte-golfing process from 237 bytes down to 185; designed and built the automated emulator test harness, including the adversarial "poisoned register" methodology that caught a real memory-corruption bug before it ever reached hardware; root-caused both bugs in the Development Log; and wrote all project documentation, including this README.
+- **Gokul Chandar** — project lead and direction, real-hardware/browser verification (the ground-truth testing that caught the second bug and the test-harness false-positive), and deployment.
+- Move-execution technique adapted from **[LeanChess](https://github.com/leanchess/leanchess) by Dmitry Shechtman** (MIT licensed) — see Technical notes above.
 
-Built through an iterative process of writing real assembly, assembling it, testing it with an automated emulator, and testing it live in a browser-based DOS emulator on a mobile phone — bugs included, all found and fixed in the open.
+This was a genuine back-and-forth collaboration, not a one-line prompt: Claude produced the assembly and reasoned through the byte-level tradeoffs and bug fixes across many rounds, while Gokul's real-device testing kept it honest, surfacing a bug the automated harness alone had missed. Built through an iterative process of writing real assembly, assembling it, testing it with an automated emulator, and testing it live in a browser-based DOS emulator on a mobile phone — bugs included, all found and fixed in the open.
 
 ---
 
