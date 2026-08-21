@@ -22,7 +22,7 @@
   .sub { color:#888; font-size:13px; margin:0 0 28px; }
   .cards { display:flex; gap:16px; flex-wrap:wrap; }
   a.card {
-    flex:1; min-width:220px;
+    flex:1; min-width:180px;
     display:block;
     border:1px solid #333; border-radius:8px;
     padding:18px 20px;
@@ -58,6 +58,15 @@
         Same game, 4 bytes smaller: skips the redundant per-cell
         attribute write, since BIOS's mode-set already clears the
         screen to the right color.
+      </div>
+    </a>
+    <a class="card" href="hyper/">
+      <div class="name">Hyper &rarr;</div>
+      <div class="bytes">174 bytes</div>
+      <div class="desc">
+        Smaller still: also drops the video mode-set call, assuming
+        the screen is already in 80&times;25 text mode. Fine in a
+        fresh DOSBox/js-dos session; a bigger assumption elsewhere.
       </div>
     </a>
   </div>

@@ -11,6 +11,7 @@ can it gain without ballooning?"*
 |---|---|---|
 | `tiny.com` (original) | 185 | baseline |
 | `ultra/tiny_ultra.com` | **181** | same behavior, 4 bytes smaller |
+| `hyper/tiny_hyper.com` | **174** | Ultra + three more cuts, one with a real tradeoff |
 | `legal/tiny_legal.com` | **582** | adds real move-legality checking |
 
 Each folder is a drop-in copy of the original repo layout (`.asm` + `.com` +
@@ -42,6 +43,44 @@ riskier — if something before this program left the screen in a graphics
 mode or a different attribute state, the board simply won't render
 correctly. Mentioned here rather than shipped, since it trades away the
 original's "just works" reliability for 5 bytes.
+
+**That aggressive cut *is* shipped as the next tier down** — see Hyper below.
+
+## Tiny Dragon: Hyper (174 bytes)
+
+Takes Ultra further with three more cuts:
+
+1. **Drops the mode-set call entirely** (`mov ax,3; int 10h`, −5 bytes),
+   assuming DOS already left the screen in 80×25 text mode. This is the
+   "more aggressive" idea mentioned above, now actually applied. It's a
+   real, meaningfully bigger assumption than Ultra's: Ultra still
+   explicitly *sets* the mode (and gets the attribute-clear as a proven
+   side effect of that); Hyper just hopes the mode is already right and
+   whatever attribute is already on screen happens to be sane. Fine in a
+   fresh DOSBox/js-dos session (the common case here); much less of a
+   sure thing after other programs have run on real hardware.
+2. **Replaces the AI-scan loop's exit check** — `cmp si,board+64` (4 bytes,
+   full 16-bit immediate, since `board` sits too far into the file for
+   a signed 8-bit immediate) followed by `jne ai_scan` (2 bytes) — with a
+   `mov cx,64` once up front and a plain `loop ai_scan` (2 bytes) at the
+   branch point. This one carries no extra risk versus Ultra: it's a pure
+   instruction-count trick, verified to behave identically. Net −1 byte.
+3. **Reuses that same CX counter for the *other* bounds check** inside the
+   scan — whether the square 8 below the current one is still on the
+   board. CX decrements once per square scanned, so "this is one of the
+   bottom 8 squares, with nothing below it" is exactly "CX ≤ 8" at that
+   point — no separate address math needed. Swapping `cmp di,board+64 /
+   jae ai_next` (6 bytes, another full-immediate compare) for `cmp cx,8 /
+   jbe ai_next` (5 bytes, 8 fits the sign-extended 8-bit immediate form)
+   saves 1 more byte, again with no added risk. Verified directly against
+   all 8 bottom-row squares (each correctly refuses to move off-board)
+   plus the square just above the bottom row (correctly still moves).
+
+**181 → 174 bytes.**
+
+If you want Hyper's two `loop`/CX tricks but *not* the mode-set risk, the
+`tiny_hyper.asm` comments show exactly what to add back for a 179-byte
+"best of both" — Ultra's safety with Hyper's two free bytes.
 
 ## Tiny Dragon: Legal (582 bytes)
 
@@ -101,7 +140,14 @@ Both derivatives were then run through the emulator across scripted move
 sequences — initial render, legal moves of every piece type, several
 illegal-move rejections (wrong shape, blocked path, self-capture, same-
 square), and multi-move sequences — with the resulting board state
-inspected after each, not just "it didn't crash."
+inspected after each, not just "it didn't crash." Hyper was separately
+regression-tested against the same move sequences as Ultra to confirm the
+mode-set removal and CX-based scan checks don't change gameplay logic
+(including targeted tests placing a piece at every square in the AI
+scan's bottom row, to directly exercise the boundary case the CX trick
+replaced). The mode-set risk itself — actual on-screen appearance — is
+inherently something my emulator can't check, since it doesn't model real
+BIOS video state; that part is on you to eyeball in DOSBox/js-dos.
 
 **What I could *not* verify here**: actual assembly with a real `nasm`
 binary, and on-screen rendering/colors in a real DOSBox/js-dos session.
