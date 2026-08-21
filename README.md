@@ -1,8 +1,7 @@
 # Tiny Dragon — two derivatives
 
-**[▶ Play both derivatives](index.html)** — opens a picker linking to
-the Legal and Ultra versions. If this repo is served via GitHub Pages,
-that's just `https://<your-username>.github.io/<repo-name>/`.
+**[▶ Play both derivatives](https://g-c-3.github.io/tiny-dragon/)**
+— opens a picker linking to the Legal and Ultra versions.
 
 Two variants of the original 185-byte Tiny Dragon, built to answer two
 different questions: *"how small can this get?"* and *"how much correctness
