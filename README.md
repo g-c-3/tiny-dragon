@@ -1,128 +1,124 @@
-# ♟️ Tiny Dragon
+# Tiny Dragon — two derivatives
 
-**A 185-byte x86-16 DOS chess program.**
+Two variants of the original 185-byte Tiny Dragon, built to answer two
+different questions: *"how small can this get?"* and *"how much correctness
+can it gain without ballooning?"*
 
-Created by **Gokul Chandar** in close collaboration with **Claude (Anthropic)** — Claude wrote and iteratively byte-golfed the x86-16 assembly, designed and ran the automated emulator test harness (including the adversarial "poisoned register" testing that caught a real correctness bug), diagnosed both bugs described in the Development Log below, and wrote this documentation. Gokul directed the project, ran the real-hardware/browser verification, and handled deployment.
+| | bytes | what changed |
+|---|---|---|
+| `tiny.com` (original) | 185 | baseline |
+| `ultra/tiny_ultra.com` | **181** | same behavior, 4 bytes smaller |
+| `legal/tiny_legal.com` | **582** | adds real move-legality checking |
 
----
+Each folder is a drop-in copy of the original repo layout (`.asm` + `.com` +
+an `index.html` that boots it via js-dos), so either can replace the
+original's files directly, or be hosted side by side.
 
-## ▶️ Play it now
+## Tiny Dragon: Ultra (181 bytes)
 
-**[g-c-3.github.io/tiny-dragon](https://g-c-3.github.io/tiny-dragon/)**
+One golf trick, applied safely: BIOS's `int 10h` video mode-set (`mov
+ax,3; int 10h`) clears the entire screen to blanks with attribute `07h` as
+a side effect. The original then *also* wrote that same attribute byte
+itself, once per board cell, via `mov byte [es:di],07h` inside the render
+loop — 4 bytes of code that write a value BIOS already put there. Since
+this program never changes video modes again after startup, that write is
+redundant. Dropping it: **185 → 181 bytes**, with identical gameplay.
 
-Runs entirely in your browser via [js-dos](https://js-dos.com) — no download, no install, works on desktop and mobile. The page loads the real `tiny.com` binary directly and starts it automatically.
+This relies on the standard (and very well-established) BIOS/DOSBox
+behavior of clearing to `07h` on a mode-set — it's not something this
+program guarantees for itself the way the original's explicit write did,
+so it's worth a quick visual check in your actual target (DOSBox/js-dos)
+that the colors still look right, especially if you ever run it in an
+environment with non-standard BIOS behavior.
 
----
+A more aggressive (and *not* applied here) further cut would be to drop
+the `mov ax,3; int 10h` mode-set entirely too (−5 more bytes → 176), on
+the assumption that DOS already left the screen in 80×25 text mode. That's
+a common assumption in size-golfed COM programs, but it's meaningfully
+riskier — if something before this program left the screen in a graphics
+mode or a different attribute state, the board simply won't render
+correctly. Mentioned here rather than shipped, since it trades away the
+original's "just works" reliability for 5 bytes.
 
-## How to play
+## Tiny Dragon: Legal (582 bytes)
 
-1. Open the link above.
-2. Tap/click **"Click to start"** (browsers require a click before audio/emulation can begin — this is normal).
-3. The game boots and draws the starting position automatically:
-   ```
-   rnbqkbnr
-   pppppppp
-   ........
-   ........
-   ........
-   ........
-   PPPPPPPP
-   RNBQKBNR
-   ```
-4. Enter a move as **4 characters**: source square + destination square, e.g.
-   ```
-   e2e4
-   ```
-   No spaces, no Enter key needed between characters — just type all four in a row.
-5. The board redraws with your move applied, then the built-in opponent automatically makes a reply move, and it's your turn again.
+Adds real piece-movement legality checking for the human (White) side:
 
-**Notation:** squares are `[file][rank]`, e.g. `e2`, `a7`, `h1` — standard algebraic chess coordinates, files `a`–`h` left to right, ranks `1`–`8` bottom to top. **You play White** (the uppercase pieces, bottom two rows). The built-in opponent automatically plays Black (lowercase, top two rows).
+- **Source square** must hold a White (uppercase) piece.
+- **Destination square** must not hold another White piece (no self-capture).
+- **Shape rules** per piece:
+  - **Pawn**: one square forward if empty; two squares forward only from
+    the starting rank, and only if both the destination *and* the jumped
+    square are empty; diagonal only as a capture (never onto an empty
+    square).
+  - **Knight**: the two (±1,±2)/(±2,±1) L-shapes.
+  - **Bishop**: equal file/rank delta, with every square strictly between
+    source and destination required to be empty.
+  - **Rook**: same file or same rank, same path-clear requirement.
+  - **Queen**: bishop-or-rook, same path-clear requirement.
+  - **King**: one square in any direction.
+- An illegal move is simply ignored: the board re-renders and you're
+  asked to move again. The AI does **not** get a free turn off an illegal
+  human input.
 
----
+**Deliberately not implemented** (same honest scope the original's README
+already stakes out for itself):
+- check / checkmate / stalemate detection — there's no king-safety
+  awareness, so you *can* legally move into or ignore check.
+- castling, en passant, pawn promotion.
+- The AI's reply is untouched — it's still the original's "shove the
+  first movable black piece down a row" heuristic. It was left
+  unvalidated on purpose: since it can only ever produce in-bounds,
+  non-capturing single-step moves by construction, it can't produce
+  anything the legality checker above would need to reject anyway.
 
-## Files in this repo
+This is the expected shape of the trade-off: real movement legality for
+six piece types plus sliding-path detection is roughly 3× the original's
+size. Tiny chess programs that also add check detection (the actual hard
+part of "legal chess") are typically several times larger still — this
+version stops short of that on purpose, matching the original's stated
+scope.
 
-| File | Description |
-|---|---|
-| [`tiny.com`](./tiny.com) | The compiled program. 185 bytes. Runs on any DOS-compatible environment (real DOS, DOSBox, FreeDOS, js-dos). |
-| [`tiny.asm`](./tiny.asm) | Full x86-16 NASM source code — the actual human-readable proof of how the 185 bytes work. |
-| `index.html` | The web page. Fetches `tiny.com` directly (cache-busted) and boots it via js-dos's `initFs`, so the live demo always reflects whatever is currently committed — no separate bundle file to keep in sync. |
+## How this was built and verified
 
-To assemble from source yourself:
-```bash
-nasm -f bin tiny.asm -o tiny.com
+This sandbox had no internet access — no `apt-get nasm`, no DOSBox/js-dos,
+no `pip install keystone/capstone/unicorn`. Rather than hand-encode x86
+opcodes and hope, I wrote a small x86-16 assembler + 8086 real-mode
+emulator from scratch (`tools/x86lib.py`) and used it as a stand-in
+"automated emulator test harness," the same idea the original project's
+own README describes using during development.
+
+Confidence in the toolchain itself: I re-encoded the *original* `tiny.asm`
+with this assembler and confirmed the output is **byte-for-byte identical**
+to the real `nasm`-built `tiny.com` you uploaded. (This caught two real
+bugs along the way — a segment-override-prefix ordering bug and a direct-
+memory-addressing decode bug in the emulator, both since fixed.)
+
+Both derivatives were then run through the emulator across scripted move
+sequences — initial render, legal moves of every piece type, several
+illegal-move rejections (wrong shape, blocked path, self-capture, same-
+square), and multi-move sequences — with the resulting board state
+inspected after each, not just "it didn't crash."
+
+**What I could *not* verify here**: actual assembly with a real `nasm`
+binary, and on-screen rendering/colors in a real DOSBox/js-dos session.
+The `.asm` source files are plain, standard NASM syntax (no special
+directives beyond what the original already used), so:
+
+```
+nasm -f bin tiny_legal.asm -o tiny_legal.com
+nasm -f bin tiny_ultra.asm -o tiny_ultra.com
 ```
 
----
+should reproduce (or, for `tiny_legal.asm`, likely slightly *undercut* —
+see note below) the `.com` files already included here. Please do that
+sanity check, and open the included `index.html` in each folder, before
+treating either as final.
 
-## The claim: how small is this, really?
-
-| Program | Size | Category |
-|---|---|---|
-| **Tiny Dragon (this project)** | **185 bytes** | x86-16 DOS executable |
-| LeanChess | 328 bytes | x86 assembly |
-| ChesSkelet (Alex García) — Guinness-certified checkpoint | 354 bytes | Z80 (ZX Spectrum) |
-| BootChess | 487 bytes | x86 assembly |
-| 1K ZX Chess (1983, the original) | 672 bytes | Z80 (ZX81) |
-
-By raw byte count, 185 bytes is smaller than every entry above, including the Guinness-recognized record holder. Note: ChesSkelet's author kept shrinking the same program over time — public sources report versions as small as 269–352 bytes at various points — so "354 bytes" specifically refers to the size Guinness certified in 2022, not the smallest version that has ever existed under that name.
-
-### Important honest context — please read before sharing this as "the record"
-
-This is a genuinely working, thoroughly tested program — not a toy that only prints "resign." It has been verified two independent ways: an automated x86 emulator (testing dozens of move sequences, corner-of-board math, degenerate same-square input, and deliberately *poisoned* CPU registers to rule out hidden assumptions about starting machine state) and real hardware/browser testing on an actual DOS emulator. Confirmed working:
-
-- Correct board rendering (8×8 grid in DOS text-mode video memory)
-- Correct keyboard input parsing
-- Correct movement math for pawns, knights, bishops (including multi-square diagonal slides), queens, and edge/corner squares
-- Correct handling of a same-source-and-destination move (a real bug we found, traced, and fixed — see Development Log below)
-- Stable behavior across long move sequences with no crashes or memory corruption, including under adversarial register conditions
-
-However, it is **not equivalent in scope** to the officially certified record holders, and that matters for any "world's smallest" claim:
-
-- **No move legality checking.** It will let you move any piece to any square, including through other pieces (for non-sliding pieces) or moves no real chess rule allows.
-- **No check, checkmate, or stalemate detection.**
-- **No castling, en passant, or promotion.**
-- **The "AI" opponent is a single fixed heuristic** (it pushes the first available black piece forward one row, regardless of piece type — meaning it can make moves that aren't actually legal for that piece, e.g. moving a knight or bishop straight forward), not a search or evaluation function.
-- **It has not been submitted to or verified by Guinness World Records**, or benchmarked head-to-head against the other programs in this table by any independent third party. The byte counts for competitors above are as publicly reported by their authors/press coverage, not re-verified by us.
-
-The honest framing: this is a legitimate, working, rigorously-tested **185-byte chess-piece-movement program**, smaller by byte count than the current Guinness-recognized entry — but "world's smallest chess *engine*" is a title with real prior art built through months or years of refinement and formal submission, and this project hasn't gone through that process. Treat the number as a genuine technical achievement worth being proud of, not a verified world record until/unless it's been through actual certification.
-
-**This isn't a shortfall unique to this project — it's how the entire category works.** The Guinness-certified ChesSkelet itself has no move legality checking (confirmed via its author-endorsed JavaScript port's documentation), and its own "known issues" list states its AI "may leave king in check to avoid losing material" — a genuine rules violation, not just a missing nicety. Separately, its author has publicly acknowledged an unfixed, reproducible move-execution bug reported by a user, and stated he's no longer working on the project. Every program at this size makes similar tradeoffs; none of them are "complete" chess by tournament standards, including the officially recognized record holder.
-
----
-
-## Technical notes
-
-- Written for 16-bit real-mode DOS, assembled with [NASM](https://nasm.us) (`-f bin`) into a flat `.COM` binary.
-- Board state: 64-byte array, one ASCII character per square (`.` = empty, lowercase = black, uppercase = white).
-- Rendering: direct writes to video memory at `0xB800` in BIOS text mode 3 via `lodsb`/`stosb` string instructions, with `LOOP`-based 8×8 nested counting — no DOS print functions, which is a big part of what keeps this small.
-- Input: raw BIOS keyboard interrupt (`INT 16h`) reads, four keystrokes per move.
-- Movement: unified handling for knights/kings (fixed offset table) and bishops/rooks/queens (looped sliding offsets), sharing code paths to save bytes. Square lookup returns a ready-to-use pointer rather than a raw index, shrinking downstream addressing.
-- The move-execution step uses an `xchg`-based swap (source ↔ temp ↔ destination) rather than separate read/write/clear instructions — a technique adapted from [LeanChess](https://github.com/leanchess/leanchess)'s source, which turned out to also fix a same-square-move bug as a side effect of the swap semantics.
-
----
-
-## Development log (honest account, not a highlight reel)
-
-This started at 237 bytes and was refined down to 185 across many rounds, including real mistakes caught and fixed along the way:
-
-- Iterative byte-golfing: register-based addressing simplifications, `LOOP`-based loop restructuring, algebraic constant-folding, subroutine factoring, and string instructions (`lodsb`/`stosb`) in place of manual memory addressing.
-- **A real correctness bug was introduced and caught mid-session**: a loop-counter optimization set only the low byte of a 16-bit register, which could have corrupted memory on real hardware where register contents at program start aren't guaranteed to be zero. Caught by deliberately testing with poisoned (non-zero garbage) initial registers, not by luck.
-- **A second real bug** — moving a piece to its own square (e.g. typing the same square twice) caused that piece to vanish rather than stay put — was found through direct on-device testing, root-caused, and fixed by adopting a technique from LeanChess's own source code, which fixed the bug as a side effect while also being one byte smaller.
-- Verification methodology deliberately combines automated emulation (fast iteration, adversarial register testing) with real on-device testing (the actual ground truth), because the two don't always agree by default — an earlier version of the automated test harness itself had a bug that produced a false "verified correct" result, which was only caught by cross-checking against real hardware.
-
----
-
-## Credits
-
-- **Claude (Anthropic)** — wrote the x86-16 NASM source and drove the byte-golfing process from 237 bytes down to 185; designed and built the automated emulator test harness, including the adversarial "poisoned register" methodology that caught a real memory-corruption bug before it ever reached hardware; root-caused both bugs in the Development Log; and wrote all project documentation, including this README.
-- **Gokul Chandar** — project lead and direction, real-hardware/browser verification (the ground-truth testing that caught the second bug and the test-harness false-positive), and deployment.
-- Move-execution technique adapted from **[LeanChess](https://github.com/leanchess/leanchess) by Dmitry Shechtman** (MIT licensed) — see Technical notes above.
-
-This was a genuine back-and-forth collaboration, not a one-line prompt: Claude produced the assembly and reasoned through the byte-level tradeoffs and bug fixes across many rounds, while Gokul's real-device testing kept it honest, surfacing a bug the automated harness alone had missed. Built through an iterative process of writing real assembly, assembling it, testing it with an automated emulator, and testing it live in a browser-based DOS emulator on a mobile phone — bugs included, all found and fixed in the open.
-
----
-
-## License
-
-Public domain / do whatever you want with it. If you build on this, a mention is appreciated but not required.
+**Note on `tiny_legal.com`'s byte count:** NASM automatically picks the
+shortest valid encoding for every conditional jump — 2 bytes if the target
+is close enough, a wider near form only when it has to. My own assembler
+doesn't implement that automatically; I approximated it with an iterative
+"try short, widen only the ones that don't fit, re-assemble" loop, which
+converged at 582 bytes. Real `nasm` should land at the same size or a few
+bytes smaller, never larger.

@@ -1,5 +1,5 @@
 <!--
-  Tiny Dragon (a.k.a. Tiny Chess)
+  Tiny Dragon (a.k.a. Tiny Chess) -- derivatives index
   Copyright (c) 2026 Gokul Chandar
   Released into the public domain -- use, copy, modify, and share freely.
   A credit back to Gokul Chandar is appreciated but not required.
@@ -9,51 +9,59 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>tiny chess</title>
-<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
-<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<title>tiny dragon</title>
 <style>
-  html,body { margin:0; background:#000; }
-  #dos { width:100vw; height:100vh; }
-  #credit {
-    position:fixed;
-    bottom:6px;
-    right:10px;
-    color:#666;
-    font-family:monospace;
-    font-size:11px;
-    z-index:10;
-    pointer-events:none;
+  html,body {
+    margin:0; height:100%;
+    background:#000; color:#ddd;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    display:flex; align-items:center; justify-content:center;
   }
+  .wrap { max-width:640px; padding:32px; }
+  h1 { color:#fff; font-size:22px; margin:0 0 4px; }
+  .sub { color:#888; font-size:13px; margin:0 0 28px; }
+  .cards { display:flex; gap:16px; flex-wrap:wrap; }
+  a.card {
+    flex:1; min-width:220px;
+    display:block;
+    border:1px solid #333; border-radius:8px;
+    padding:18px 20px;
+    color:#ddd; text-decoration:none;
+    background:#0a0a0a;
+    transition:border-color .15s, background .15s;
+  }
+  a.card:hover { border-color:#6cf; background:#111; }
+  a.card .name { color:#6cf; font-size:16px; font-weight:600; }
+  a.card .bytes { color:#888; font-size:12px; margin:2px 0 10px; }
+  a.card .desc { color:#bbb; font-size:13px; line-height:1.5; }
+  #credit { margin-top:28px; color:#555; font-size:11px; }
 </style>
 </head>
 <body>
-<div id="dos"></div>
-<div id="credit">&copy; 2026 Gokul Chandar</div>
-<script>
-  // Fetch tiny.com fresh every time (cache-busted), so this page ALWAYS
-  // reflects whatever is currently committed to the repo -- no separate
-  // .jsdos bundle to remember to regenerate.
-  fetch("tiny.com?_=" + Date.now(), { cache: "no-store" })
-    .then(r => r.arrayBuffer())
-    .then(buf => {
-      const bytes = new Uint8Array(buf);
-      Dos(document.getElementById("dos"), {
-        dosboxConf: `
-[autoexec]
-mount c .
-c:
-tiny.com
-`,
-        initFs: [
-          { path: "/tiny.com", contents: bytes }
-        ]
-      });
-    })
-    .catch(err => {
-      document.getElementById("dos").innerText =
-        "Failed to load tiny.com: " + err;
-    });
-</script>
+<div class="wrap">
+  <h1>Tiny Dragon</h1>
+  <p class="sub">two derivatives of the original 185-byte tiny chess</p>
+  <div class="cards">
+    <a class="card" href="legal/">
+      <div class="name">Legal &rarr;</div>
+      <div class="bytes">582 bytes</div>
+      <div class="desc">
+        Adds real move-legality checking: correct shapes for every piece,
+        blocked-path detection, no self-capture. Illegal moves are
+        rejected instead of just happening.
+      </div>
+    </a>
+    <a class="card" href="ultra/">
+      <div class="name">Ultra &rarr;</div>
+      <div class="bytes">181 bytes</div>
+      <div class="desc">
+        Same game, 4 bytes smaller: skips the redundant per-cell
+        attribute write, since BIOS's mode-set already clears the
+        screen to the right color.
+      </div>
+    </a>
+  </div>
+  <div id="credit">&copy; 2026 Gokul Chandar</div>
+</div>
 </body>
 </html>
