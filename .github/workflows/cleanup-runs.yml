@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       keep_workflow:
-        description: "Exact name of the workflow whose latest run to keep"
-        default: "Release Build"
+        description: "Optional: keep latest run of this workflow name. Leave empty to keep the latest run overall."
+        default: ""
       dry_run:
         description: "Only list what would be deleted"
         type: boolean
@@ -19,7 +19,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete all runs except the latest release build
+      - name: Delete all runs except the latest one
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -31,11 +31,13 @@ jobs:
           runs=$(gh api --paginate "repos/$REPO/actions/runs?per_page=100" \
             --jq '.workflow_runs[] | {id, name, created_at}' | jq -s '.')
 
-          keep_id=$(echo "$runs" | jq -r --arg n "$KEEP_NAME" \
-            '[.[] | select(.name==$n)] | sort_by(.created_at) | last | .id // empty')
+          # Ignore this cleanup run when choosing which run to keep
+          keep_id=$(echo "$runs" | jq -r --arg n "$KEEP_NAME" --arg s "$SELF_ID" \
+            '[.[] | select((.id|tostring)!=$s) | select($n=="" or .name==$n)]
+             | sort_by(.created_at) | last | .id // empty')
 
           if [ -z "$keep_id" ]; then
-            echo "No run found for workflow '$KEEP_NAME'. Aborting so nothing is lost."
+            echo "No matching run found. Aborting so nothing is lost."
             exit 1
           fi
           echo "Keeping run $keep_id (and this cleanup run $SELF_ID)"
